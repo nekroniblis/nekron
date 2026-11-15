@@ -9,13 +9,7 @@
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--g);font-family:"Courier New",Courier,monospace;min-height:100vh}
-/* live CRT scanlines: crawling lines + faint flicker + slow rolling refresh band */
-body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(0deg,rgba(0,255,65,.04) 0 1px,transparent 1px 3px);animation:crawl 8s linear infinite,flick 5s steps(1) infinite}
-body::before{content:"";position:fixed;left:0;right:0;top:0;height:22vh;pointer-events:none;z-index:50;background:linear-gradient(180deg,transparent,rgba(0,255,65,.05) 50%,transparent);animation:roll 9s linear infinite}
-@keyframes crawl{to{background-position:0 60px}}
-@keyframes roll{from{transform:translateY(-25vh)}to{transform:translateY(105vh)}}
-@keyframes flick{0%,100%{opacity:1}30%{opacity:.88}31%{opacity:1}72%{opacity:.8}73%{opacity:.95}74%{opacity:1}}
-@media (prefers-reduced-motion:reduce){body::after,body::before{animation:none}}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,255,65,.04) 0 1px,transparent 1px 3px)}
 .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
 h1{margin:0 0 4px;font-size:clamp(2rem,6vw,3.2rem);letter-spacing:.15em;text-shadow:0 0 10px var(--g)}
 h1::after{content:"_";animation:b 1s steps(1) infinite}
