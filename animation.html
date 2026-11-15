@@ -22,6 +22,9 @@ h1::after{content:"_";animation:b 1s steps(1) infinite}
 .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 h2{margin:26px 0 12px;font-size:1rem;color:var(--dg)}
 .brk{border:0;border-top:1px dashed var(--dg);margin:34px 0 0}
+.back-wrap{display:flex;justify-content:center;margin-top:28px}
+.back{color:var(--g);border:1px solid var(--g);padding:10px 28px;text-decoration:none;letter-spacing:.15em;text-transform:uppercase;transition:.15s}
+.back:hover,.back:focus-visible{background:var(--g);color:#000;box-shadow:0 0 14px var(--g);outline:none}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
 .t{background:#000;border:1px solid var(--dg);color:var(--g);font:inherit;text-align:left;padding:0;cursor:pointer;transition:.15s}
 .t:hover,.t:focus-visible,.t.on{border-color:var(--g);box-shadow:0 0 12px var(--g);outline:none}
@@ -49,6 +52,10 @@ h2{margin:26px 0 12px;font-size:1rem;color:var(--dg)}
 
   <h2>// Sword in Stone [4]</h2>
   <div class="grid" id="grid2"></div>
+
+  <hr class="brk">
+
+  <div class="back-wrap"><a class="back" id="back" href="index.html">&lt; back</a></div>
 </div>
 
 <script>
@@ -90,6 +97,9 @@ VIDEOS.forEach((v,i)=>{
   grids[i<7?0:1].appendChild(b);
 });
 play(0,false);
+document.getElementById("back").onclick=e=>{
+  if(history.length>1){e.preventDefault();history.back();}
+};
 </script>
 </body>
 </html>
