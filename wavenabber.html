@@ -842,13 +842,19 @@
             initSaveSlots();
             disableControls();
         });
+	
+document.getElementById('backButton').addEventListener('click', () => {
+    if (history.length > 1) {
+        history.back();
+    } else {
+        window.location.href = 'https://nekroniblis.github.io/nekron/';
+    }
+});
+	
 </script>
-	<div class="links"><font size="2">
-        <a href="https://www.nekron.site/">Nekron.site</a> | 
-        <a href="https://www.nekron.org/">Nekron.org</a> | 
-        <a href="https://www.nekron.org/vec.html">Vektorweb</a> |
-        <a href="https://www.nekron.org/radar.html">Noise Radar</a>
-      </font>
+<div class="links">
+    <button id="backButton">← Back</button>
+</div>
     </div>
 </body>
 </html>
