@@ -1,455 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CIPHER.STREAM</title>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Animations</title>
 <style>
-  :root {
-    --green: #00ff41;
-    --red:   #ff2020;
-    --dim:   rgba(0,255,65,0.45);
-    --panel: rgba(0,8,0,0.88);
-  }
-
-  * { margin:0; padding:0; box-sizing:border-box; }
-
-  body {
-    background: #000;
-    color: var(--green);
-    font-family: 'Share Tech Mono', monospace;
-    overflow-x: hidden;
-    min-height: 100vh;
-  }
-
-  /* ── MOVING LINES CANVAS ── */
-  #bg { position:fixed; inset:0; z-index:0; pointer-events:none; }
-
-  /* ── CRT SCANLINES ── */
-  .scanlines {
-    position:fixed; inset:0; z-index:1; pointer-events:none;
-    background:repeating-linear-gradient(
-      0deg,transparent,transparent 2px,
-      rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px
-    );
-  }
-
-  /* ── HEADER ── */
-  header {
-    position:relative; z-index:10;
-    text-align:center; padding:30px 20px 14px;
-    border-bottom:1px solid rgba(0,255,65,0.15);
-    background:linear-gradient(180deg,rgba(0,0,0,0.97) 60%,transparent);
-  }
-  header h1 {
-    font-family:'Orbitron',sans-serif;
-    font-size:clamp(2rem,5vw,3.4rem);
-    font-weight:900; letter-spacing:.25em;
-    text-shadow:0 0 18px var(--green),0 0 40px rgba(0,255,65,.35);
-    animation:flicker 7s infinite;
-  }
-  header h1 em {
-    color:var(--red); font-style:normal;
-    text-shadow:0 0 18px var(--red),0 0 40px rgba(255,32,32,.35);
-  }
-  header p { font-size:.7rem; letter-spacing:.3em; color:rgba(0,255,65,.4); margin-top:5px; }
-
-  @keyframes flicker {
-    0%,100%{opacity:1} 91%{opacity:1} 92%{opacity:.3}
-    93%{opacity:1} 96%{opacity:.7} 97%{opacity:1}
-  }
-
-  /* ── LAYOUT ── */
-  .wrap {
-    position:relative; z-index:10;
-    max-width:1080px; margin:0 auto;
-    padding:28px 18px 80px;
-  }
-
-  /* ── PLAYER BOX ── */
-  .player-box {
-    position:relative; background:#000;
-    border:2px solid var(--green); border-radius:4px; overflow:hidden;
-    box-shadow:0 0 28px rgba(0,255,65,.2),0 0 0 1px rgba(255,32,32,.12),
-               inset 0 0 80px rgba(0,0,0,.9);
-  }
-  .player-box::before,.player-box::after {
-    content:''; position:absolute; left:0; right:0; height:2px;
-    z-index:5; pointer-events:none;
-  }
-  .player-box::before { top:0;
-    background:linear-gradient(90deg,transparent,var(--red),transparent);
-    animation:beam 3.5s ease-in-out infinite; }
-  .player-box::after  { bottom:0;
-    background:linear-gradient(90deg,transparent,var(--green),transparent);
-    animation:beam 3.5s ease-in-out infinite reverse; }
-  @keyframes beam{0%,100%{opacity:.2}50%{opacity:1}}
-
-  .now-bar {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:7px 14px; background:rgba(0,0,0,.92);
-    border-bottom:1px solid rgba(0,255,65,.2);
-    font-size:.68rem; letter-spacing:.18em; color:rgba(0,255,65,.65);
-  }
-  .now-bar .dot {
-    width:8px; height:8px; border-radius:50%;
-    background:var(--red); box-shadow:0 0 8px var(--red);
-    animation:blink 1.2s infinite;
-  }
-  @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-
-  /* splash */
-  #splash {
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:center;
-    min-height:320px; gap:14px; color:rgba(0,255,65,.22);
-  }
-  #splash .icon{font-size:3.5rem;}
-  #splash p{font-size:.72rem;letter-spacing:.25em;}
-
-  /* video */
-  #vid { display:none; width:100%; max-height:540px; background:#000; }
-
-  /* error */
-  #err {
-    display:none; flex-direction:column;
-    align-items:center; justify-content:center;
-    min-height:280px; gap:12px; color:rgba(255,32,32,.65);
-  }
-  #err .icon{font-size:2.5rem;}
-  #err p{font-size:.7rem;letter-spacing:.2em;}
-  #err a {
-    margin-top:6px; padding:6px 18px;
-    border:1px solid var(--red); color:var(--red);
-    font-size:.65rem; letter-spacing:.2em;
-    text-decoration:none; font-family:'Orbitron',sans-serif;
-    transition:background .2s,color .2s;
-  }
-  #err a:hover{background:var(--red);color:#000;}
-
-  /* ── SECTION LABEL ── */
-  .sec {
-    font-family:'Orbitron',sans-serif; font-size:.75rem;
-    letter-spacing:.3em; color:var(--red); text-shadow:0 0 8px var(--red);
-    margin:36px 0 14px; display:flex; align-items:center; gap:10px;
-  }
-  .sec::after{content:'';flex:1;height:1px;
-    background:linear-gradient(90deg,var(--red),transparent);}
-
-  /* ── GRID ── */
-  .grid {
-    display:grid;
-    grid-template-columns:repeat(5,1fr);
-    gap:12px;
-  }
-  @media(max-width:640px){
-    .grid{grid-template-columns:repeat(2,1fr);}
-  }
-
-  .card {
-    cursor:pointer; border-radius:3px; overflow:hidden;
-    border:1px solid rgba(0,255,65,.18); background:var(--panel);
-    position:relative;
-    transition:transform .18s,border-color .18s,box-shadow .18s;
-  }
-  .card:hover {
-    transform:translateY(-4px); border-color:var(--green);
-    box-shadow:0 8px 24px rgba(0,255,65,.18),0 0 0 1px rgba(255,32,32,.15);
-  }
-  .card.active { border-color:var(--red); box-shadow:0 0 18px rgba(255,32,32,.28); }
-  .card.active::after {
-    content:'▶ NOW PLAYING';
-    position:absolute; top:6px; right:6px;
-    background:var(--red); color:#000;
-    font-size:.5rem; padding:2px 5px;
-    font-family:'Orbitron',sans-serif; letter-spacing:.08em;
-  }
-
-  .thumb {
-    width:100%; aspect-ratio:16/10; object-fit:cover; display:block;
-    filter:grayscale(25%) contrast(1.1); transition:filter .25s;
-  }
-  .card:hover .thumb{filter:grayscale(0%) contrast(1.15) brightness(1.08);}
-
-  .thumb-ph {
-    width:100%; aspect-ratio:16/10;
-    background:linear-gradient(135deg,#001400,#000);
-    display:flex; align-items:center; justify-content:center;
-    font-size:2.2rem;
-  }
-
-  .info{padding:7px 9px 10px;}
-  .ttl {
-    font-family:'Orbitron',sans-serif; font-size:.6rem;
-    letter-spacing:.04em; color:var(--green);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    margin-bottom:3px;
-  }
-  .meta{font-size:.58rem;color:var(--dim);letter-spacing:.04em;}
-  .meta b{color:var(--red);font-weight:normal;}
-
-  /* ── STATUS BAR ── */
-  .bar {
-    position:fixed; bottom:0; left:0; right:0; z-index:20;
-    background:rgba(0,0,0,.94); border-top:1px solid rgba(0,255,65,.18);
-    padding:5px 20px; font-size:.62rem; letter-spacing:.14em;
-    color:rgba(0,255,65,.45); display:flex; gap:24px; align-items:center;
-  }
-  .bar .r{color:var(--red);}
-  #clk{margin-left:auto;}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--g:#00ff41;--dg:#0a7a22;--bg:#000}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--g);font-family:"Courier New",Courier,monospace;min-height:100vh}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,255,65,.04) 0 1px,transparent 1px 3px)}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
+h1{margin:0 0 4px;font-size:clamp(2rem,6vw,3.2rem);letter-spacing:.15em;text-shadow:0 0 10px var(--g)}
+h1::after{content:"_";animation:b 1s steps(1) infinite}
+@keyframes b{50%{opacity:0}}
+.sub{color:var(--dg);margin:0 0 18px}
+.screen{border:1px solid var(--g);box-shadow:0 0 18px rgba(0,255,65,.45);background:#020a04;padding:8px}
+.bar{display:flex;justify-content:space-between;gap:8px;font-size:.85rem;padding:2px 2px 8px;flex-wrap:wrap}
+.bar a{color:var(--g)}
+.frame{position:relative;aspect-ratio:16/9;background:#000;border:1px solid var(--dg)}
+.frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+h2{margin:26px 0 12px;font-size:1rem;color:var(--dg)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.t{background:#000;border:1px solid var(--dg);color:var(--g);font:inherit;text-align:left;padding:0;cursor:pointer;transition:.15s}
+.t:hover,.t:focus-visible,.t.on{border-color:var(--g);box-shadow:0 0 12px var(--g);outline:none}
+.img{position:relative;aspect-ratio:16/9;background:repeating-linear-gradient(45deg,#031a08 0 8px,#000 8px 16px);display:flex;align-items:center;justify-content:center;font-size:1.6rem;overflow:hidden}
+.img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(.6) sepia(1) hue-rotate(60deg) saturate(2.5) brightness(.85)}
+.t:hover .img img,.t.on .img img{filter:none}
+.cap{padding:6px 8px;font-size:.8rem;display:flex;gap:6px}
+.cap b{color:var(--dg)}
 </style>
 </head>
 <body>
-
-<div style="position:fixed; top:px; right:4px; display:flex; align-items:center; z-index:50;"><a href="https://www.nekron.org/"><img src="https://www.nekron.org/hawk.png" alt="Hawk Icon" style="height: 30px; display: block;"></a><a href="https://www.nekron.org/vec"><img src="https://www.nekron.org/squid.gif" alt="Squid Icon" style="height: 30px;"></a><a href="https://www.nekron.org/wavenabber"><img src="https://www.nekron.org/ggsm.png" alt="GGSM Icon" style="height: 30px;"></a><a href="https://www.nekron.org/radar.html"><img src="https://www.nekron.org/moths.png" alt="Moths Icon" style="height: 30px;"></a></div>
-
-<canvas id="bg"></canvas>
-<div class="scanlines"></div>
-
-<header>
-  <h1>CIPHER<em>.</em>STREAM</h1>
-  <p>// PRIVATE CINEMA — ENCRYPTED CHANNEL //</p>
-</header>
-
 <div class="wrap">
+  <h1>Animations</h1>
+  <p class="sub">&gt; select a thumbnail to load the stream</p>
 
-  <div class="player-box" id="playerBox">
-    <div class="now-bar">
-      <span id="npLabel">SELECT A TRANSMISSION</span>
-      <div class="dot"></div>
-    </div>
-    <div id="splash">
-      <div class="icon">🎬</div>
-      <p>AWAITING SIGNAL...</p>
-    </div>
-    <video id="vid" controls></video>
-    <div id="err">
-      <div class="icon">⚠</div>
-      <p>SIGNAL LOST — FILE NOT FOUND</p>
-      <a id="errLink" href="#" target="_blank">OPEN SOURCE ↗</a>
-    </div>
+  <div class="screen">
+    <div class="bar"><span id="now">&gt; loading…</span><a id="yt" href="#" target="_blank" rel="noopener">open on youtube ↗</a></div>
+    <div class="frame"><iframe id="player" title="Animation player" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
   </div>
 
-  <div class="sec">▸ AVAILABLE TRANSMISSIONS</div>
+  <h2>// 10 files found</h2>
   <div class="grid" id="grid"></div>
-
-</div>
-
-<div class="bar">
-  <span>SYS: <span class="r">ONLINE</span></span>
-  <span>CODEC: MP4 / WEBM</span>
-  <span id="clk"></span>
 </div>
 
 <script>
-/* ============================================================
-   MOVIE CATALOGUE — add your films here
-   ──────────────────────────────────────────────────────────
-   src   → direct URL to your .mp4 / .webm / .ogg file
-           e.g. "https://yourdomain.com/movies/film1.mp4"
-                "https://cdn.example.com/video/movie.webm"
-   thumb → URL to a poster/thumbnail image  (or leave "" for emoji)
-   ============================================================ */
-const MOVIES = [
-  {
-    title : "Epoch 1",
-    year  : "2024",
-    genre : "Metal",
-    emoji : "🎬",
-    src   : "https://nekron.org/Mov/one/01%20Nekron%20Iblis%20-%20Epoch%201%20comp.mp4",
-    thumb : "https://nekron.org/Mov/one/av.jpg"
-  },
-  {
-    title : "Muons",
-    year  : "2024",
-    genre : "Metal",
-    emoji : "🔪",
-    src   : "https://nekron.org/Mov/one/02%20Nekron%20Iblis%20-%20Muons.mp4",
-    thumb : "https://nekron.org/Mov/one/av.jpg"
-  },
-  {
-    title : "Zooted",
-    year  : "2024",
-    genre : "Metal",
-    emoji : "🚀",
-    src   : "https://nekron.org/Mov/one/03%20Nekron%20Iblis%20-%20zooted.mp4",
-    thumb : "https://nekron.org/Mov/one/av.jpg"
-  },
-  {
-    title : "Oh sweet tone",
-    year  : "2024",
-    genre : "Metal",
-    emoji : "👻",
-    src   : "https://nekron.org/Mov/one/04%20Nekron%20Iblis%20-%20Oh%20sweet%20tone.mp4",
-    thumb : "https://nekron.org/Mov/one/av.jpg"
-  },
-  {
-    title : "Planetxanupillarofpills",
-    year  : "2024",
-    genre : "Metal",
-    emoji : "😂",
-    src   : "https://nekron.org/Mov/one/05%20Nekron%20Iblis%20-%20planetxanupillarofpills.mp4",
-    thumb : "https://nekron.org/Mov/one/av.jpg"
-  },
-  {
-    title : "S h r e d",
-    year  : "2024",
-    genre : "Metal",
-    emoji : "❤️",
-    src   : "https://nekron.org/Mov/one/06%20%F0%9F%AA%96s%20h%20r%20e%20d.%F0%9F%93%97.mp4",
-    thumb : "https://nekron.org/Mov/one/av.jpg"
-  },
-  {
-    title : "Amped",
-    year  : "2024",
-    genre : "Metal",
-    emoji : "🧙",
-    src   : "https://nekron.org/Mov/one/07%20Nekron%20Iblis%20-%20Amped.mp4",
-    thumb : "https://nekron.org/Mov/one/av.jpg"
-  },
-  {
-    title : "S M A U G",
-    year  : "2024",
-    genre : "Metal",
-    emoji : "🧙",
-    src   : "https://nekron.org/Mov/two/Nekron%20Iblis%20-%20S%20m%20a%20u%20g.mp4",
-    thumb : "https://nekron.org/Mov/two/av2.jpg"
-  },
-  {
-    title : "Thousand Suns",
-    year  : "2024",
-    genre : "Metal",
-    emoji : "🧙",
-    src   : "https://nekron.org/Mov/two/Nekron%20Iblis%20-%20Thousand%20Suns.mp4",
-    thumb : "https://nekron.org/Mov/two/av2.jpg"
-  },
-  {
-    title : "Bloodwizard",
-    year  : "2024",
-    genre : "Metal",
-    emoji : "🧙",
-    src   : "https://nekron.org/Mov/two/Nekron%20Iblis%20-%20Bloodwizard.mp4",
-    thumb : "https://nekron.org/Mov/two/av2.jpg"
-  },
-  {
-    title : "Immense Buzz",
-    year  : "2024",
-    genre : "Metal",
-    emoji : "🧙",
-    src   : "https://nekron.org/Mov/two/Nekron%20Iblis%20-%20Immense%20Buzz.mp4",
-    thumb : "https://nekron.org/Mov/two/av2.jpg"
-  },
+const VIDEOS=[
+ {id:"qrQZLu6ypqI",t:"Epoch 1"},
+ {id:"eRsGyueVLvQ",t:"Sintel"},
+ {id:"R6MlUcmOul8",t:"Tears of Steel"},
+ {id:"TLkA0RELQ1g",t:"Elephants Dream"},
+ {id:"Y-rmzh0PI3c",t:"Cosmos Laundromat"},
+ {id:"WhWc3b3KhnY",t:"Spring"},
+ {id:"mN0zPOpADL4",t:"Agent 327: Barber Shop"},
+ {id:"SkVqJ1SGeL0",t:"Caminandes: Llama Drama"},
+ {id:"Z4C82eyhwgU",t:"Caminandes: Gran Dillama"},
+ {id:"PVGeM40dABA",t:"Coffee Run"}
 ];
-
-/* ── DOM refs ── */
-const grid    = document.getElementById('grid');
-const vid     = document.getElementById('vid');
-const splash  = document.getElementById('splash');
-const errBox  = document.getElementById('err');
-const errLink = document.getElementById('errLink');
-const npLabel = document.getElementById('npLabel');
-
-/* ── Build cards ── */
-MOVIES.forEach(m => {
-  const hasThumb = m.thumb && m.thumb !== "YOUR_POSTER_IMAGE_URL_HERE";
-  const card = document.createElement('div');
-  card.className = 'card';
-  card.innerHTML = `
-    ${hasThumb
-      ? `<img class="thumb" src="${m.thumb}" alt="${m.title}"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-      : ''}
-    <div class="thumb-ph" style="display:${hasThumb?'none':'flex'}">${m.emoji}</div>
-    <div class="info">
-      <div class="ttl">${m.title}</div>
-      <div class="meta"><b>${m.genre}</b> · ${m.year}</div>
-    </div>`;
-  card.addEventListener('click', () => play(m, card));
-  grid.appendChild(card);
+const grid=document.getElementById("grid"),player=document.getElementById("player"),now=document.getElementById("now"),yt=document.getElementById("yt");
+function play(i,auto){
+  const v=VIDEOS[i];
+  player.src="https://www.youtube-nocookie.com/embed/"+v.id+"?rel=0"+(auto?"&autoplay=1":"");
+  now.textContent="> now playing: "+v.t.toLowerCase();
+  yt.href="https://www.youtube.com/watch?v="+v.id;
+  [...grid.children].forEach((c,j)=>c.classList.toggle("on",j===i));
+  if(auto)window.scrollTo({top:0,behavior:"smooth"});
+}
+VIDEOS.forEach((v,i)=>{
+  const b=document.createElement("button");
+  b.className="t";
+  b.innerHTML='<div class="img">▶<img alt="" loading="lazy" src="https://img.youtube.com/vi/'+v.id+'/mqdefault.jpg"></div><div class="cap"><b>'+String(i+1).padStart(2,"0")+'</b><span>'+v.t+'</span></div>';
+  b.querySelector("img").onerror=function(){this.remove()};
+  b.onclick=()=>play(i,true);
+  grid.appendChild(b);
 });
-
-/* ── Play a film ── */
-function play(m, card) {
-  document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
-  card.classList.add('active');
-  npLabel.textContent = `▶  ${m.title}   (${m.year})   —   ${m.genre}`;
-
-  splash.style.display = 'none';
-  errBox.style.display = 'none';
-  vid.style.display    = 'block';
-
-  vid.src = m.src;
-  vid.load();
-  vid.play().catch(() => {});   // user gesture may be needed — native controls handle it
-
-  vid.onerror = () => {
-    vid.style.display    = 'none';
-    errBox.style.display = 'flex';
-    errLink.href         = m.src;
-  };
-
-  document.getElementById('playerBox')
-    .scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-/* ── Clock ── */
-const clk = document.getElementById('clk');
-setInterval(() => {
-  clk.textContent = 'LOCAL: ' + new Date().toTimeString().slice(0,8);
-}, 1000);
-
-/* ── Animated lines background ── */
-const canvas = document.getElementById('bg');
-const ctx    = canvas.getContext('2d');
-
-function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
-resize();
-window.addEventListener('resize', resize);
-
-const LINES=[], COUNT=40;
-function mkLine(){
-  const vert=Math.random()>.44, red=Math.random()>.7;
-  return {
-    vert, pos:vert?Math.random()*window.innerWidth:Math.random()*window.innerHeight,
-    speed:(Math.random()*.55+.12)*(Math.random()>.5?1:-1),
-    alpha:Math.random()*.22+.04,
-    thick:Math.random()>.82?2:1,
-    color:red?'rgba(255,32,32,':'rgba(0,255,65,',
-    frac:Math.random()*.65+.15,
-    offset:Math.random(),
-    glow:Math.random()>.78
-  };
-}
-for(let i=0;i<COUNT;i++) LINES.push(mkLine());
-
-(function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  const W=canvas.width, H=canvas.height;
-  for(const l of LINES){
-    ctx.save();
-    ctx.globalAlpha=l.alpha;
-    ctx.strokeStyle=l.color+l.alpha+')';
-    ctx.lineWidth=l.thick;
-    if(l.glow){ctx.shadowBlur=9;ctx.shadowColor=l.color+'0.9)';}
-    ctx.beginPath();
-    if(l.vert){
-      const x=((l.pos%W)+W)%W, y0=H*l.offset;
-      ctx.moveTo(x,y0); ctx.lineTo(x,y0+H*l.frac);
-    } else {
-      const y=((l.pos%H)+H)%H, x0=W*l.offset;
-      ctx.moveTo(x0,y); ctx.lineTo(x0+W*l.frac,y);
-    }
-    ctx.stroke(); ctx.restore();
-    l.pos+=l.speed; l.offset+=l.speed*.0003;
-    const max=l.vert?W:H;
-    if(l.pos>max+10||l.pos<-10){
-      Object.assign(l,mkLine());
-      l.pos=l.speed>0?-4:max+4;
-    }
-  }
-  requestAnimationFrame(draw);
-})();
+play(0,false);
 </script>
 </body>
 </html>
