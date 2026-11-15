@@ -9,8 +9,13 @@
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--g);font-family:"Courier New",Courier,monospace;min-height:100vh}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,255,65,.04) 0 1px,transparent 1px 3px)}
-.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 40px}
+.scan{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.scan i{position:absolute;left:0;right:0;top:0;height:1px;background:var(--g);box-shadow:0 0 6px var(--g),0 0 14px rgba(0,255,65,.5);opacity:.4;animation:ud 7s ease-in-out infinite alternate}
+.scan i:nth-child(2){height:1px;opacity:.22;animation-duration:11s;animation-delay:-4s}
+.scan i:nth-child(3){height:1px;opacity:.14;animation-duration:5s;animation-delay:-2s}
+@keyframes ud{from{transform:translateY(0)}to{transform:translateY(100vh)}}
+@media (prefers-reduced-motion:reduce){.scan i{animation:none}}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:20px 16px 40px}
 h1{margin:0 0 4px;font-size:clamp(2rem,6vw,3.2rem);letter-spacing:.15em;text-shadow:0 0 10px var(--g)}
 h1::after{content:"_";animation:b 1s steps(1) infinite}
 @keyframes b{50%{opacity:0}}
@@ -36,6 +41,7 @@ h2{margin:26px 0 12px;font-size:1rem;color:var(--dg)}
 </style>
 </head>
 <body>
+<div class="scan"><i></i><i></i><i></i></div>
 <div class="wrap">
   <h1>Animations</h1>
   <p class="sub">&gt; select a thumbnail to load the stream</p>
