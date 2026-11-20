@@ -4,6 +4,7 @@
 $feeds = [
     'planetary' => 'https://www.planetary.org/rss/articles',
     'nasa'      => 'https://www.nasa.gov/feeds/iotd-feed/',
+    'dune'      => 'https://news.fnal.gov/tag/dune/feed/',
 ];
 
 $key = $_GET['src'] ?? '';

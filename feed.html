@@ -185,143 +185,121 @@
         setInterval(updateTime, 1000);
         updateTime();
 
-        // Fetch DUNE RSS Feed via multiple CORS proxies with raw XML parsing
         const DUNE_FEED_URL = "https://news.fnal.gov/tag/dune/feed/";
 
-        // Each proxy returns the raw RSS XML as plain text
-        const PROXIES = [
-            xml => `https://api.allorigins.win/raw?url=${encodeURIComponent(xml)}`,
-            xml => `https://corsproxy.io/?${encodeURIComponent(xml)}`,
-            xml => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(xml)}`
-        ];
-
-        async function fetchRawXML() {
-            for (const makeUrl of PROXIES) {
-                try {
-                    const res = await fetch(makeUrl(DUNE_FEED_URL));
-                    if (!res.ok) continue;
-                    const text = await res.text();
-                    // Must look like RSS — reject HTML error pages
-                    if (text.trim().startsWith("<") && (text.includes("<rss") || text.includes("<feed"))) {
-                        return text;
-                    }
-                } catch (e) { /* try next proxy */ }
-            }
-            throw new Error("All proxies failed — check network or try again later");
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         }
 
-        function getText(item, ...tags) {
-            for (const tag of tags) {
-                const el = item.getElementsByTagName(tag)[0]
-                        || item.getElementsByTagName("dc:" + tag)[0];
-                if (el && el.textContent.trim()) return el.textContent.trim();
-            }
-            return "";
-        }
-
-        function parseRSS(xmlString) {
-            // Strip any leading BOM or whitespace before the XML declaration
-            const clean = xmlString.replace(/^\s+/, '').replace(/^\uFEFF/, '');
-            const parser = new DOMParser();
-            const xml = parser.parseFromString(clean, "text/xml");
-
-            const parseErr = xml.getElementsByTagName("parsererror")[0];
-            if (parseErr) throw new Error("Bad XML from proxy: " + parseErr.textContent.trim().substring(0, 120));
-
-            const items = Array.from(xml.getElementsByTagName("item"));
-            if (!items.length) throw new Error("Feed returned 0 articles");
-
-            return items.map(item => {
-                // <link> in RSS 2.0 is a text node — textContent works most of the time,
-                // but fall back to <guid> if empty
-                const linkRaw = getText(item, "link");
-                const link = (linkRaw && linkRaw.startsWith("http"))
-                    ? linkRaw
-                    : getText(item, "guid") || "#";
-
+        // Turn raw RSS/Atom XML into the same item shape rss2json returns
+        function parseFeedXml(text) {
+            const xml = new DOMParser().parseFromString(text, 'text/xml');
+            return Array.from(xml.querySelectorAll('item, entry')).map(el => {
+                const txt = sel => (el.querySelector(sel)?.textContent || '').trim();
+                const linkEl = el.querySelector('link');
                 return {
-                    title:       getText(item, "title")              || "UNTITLED",
-                    link,
-                    pubDate:     getText(item, "pubDate"),
-                    author:      getText(item, "creator", "author")  || "FERMILAB",
-                    description: getText(item, "description")        || ""
+                    title: txt('title'),
+                    link: (linkEl && (linkEl.getAttribute('href') || linkEl.textContent.trim())) || '',
+                    pubDate: txt('pubDate') || txt('published') || txt('updated'),
+                    description: txt('description') || txt('summary'),
+                    author: (el.getElementsByTagName('dc:creator')[0]?.textContent || '').trim()
                 };
             });
         }
 
-        function renderItems(items) {
-            const feedContainer = document.getElementById('rss-feed');
-            const statusMsg    = document.getElementById('status-msg');
+        // Route 0: our own server (feed.php) -> Route 1: rss2json -> Route 2+: public proxies
+        async function fetchFeedItems() {
+            try {
+                const r = await fetch('/feed.php?src=dune');
+                if (r.ok) {
+                    const items = parseFeedXml(await r.text());
+                    if (items.length) return items;
+                }
+                console.warn('feed.php returned nothing usable:', r.status);
+            } catch (e) { console.warn('feed.php failed:', e); }
 
-            feedContainer.innerHTML = '';
-            statusMsg.classList.remove('animate-pulse');
-            statusMsg.innerText = `>> SUCCESS: ${items.length} PACKETS RECEIVED FROM DUNE_SOURCE`;
+            try {
+                const r = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(DUNE_FEED_URL));
+                const d = await r.json();
+                if (d.status === 'ok' && d.items && d.items.length) return d.items;
+                console.warn('rss2json:', d.message || d.status);
+            } catch (e) { console.warn('rss2json failed:', e); }
 
-            items.forEach(item => {
-                const article = document.createElement('div');
-                article.className = 'feed-item group';
-
-                const pubDate = item.pubDate
-                    ? new Date(item.pubDate).toLocaleDateString(undefined, {
-                        year: 'numeric', month: 'short', day: 'numeric'
-                      })
-                    : "UNKNOWN";
-
-                const snippet = item.description
-                    .replace(/<[^>]*>?/gm, '')
-                    .replace(/\s+/g, ' ')
-                    .trim()
-                    .substring(0, 180) + "…";
-
-                const hexId = Math.floor(Math.random() * 16777215)
-                    .toString(16).padStart(6, '0').toUpperCase();
-
-                article.innerHTML = `
-                    <div class="meta">
-                        [ID: 0x${hexId}]
-                        [DATE: ${pubDate}]
-                        [BY: ${item.author}]
-                    </div>
-                    <h2 class="text-xl font-bold mb-2">
-                        <a href="${item.link}" target="_blank">${item.title}</a>
-                    </h2>
-                    <p class="text-sm leading-relaxed opacity-90">${snippet}</p>
-                    <div class="mt-4 text-xs font-bold underline">READ_FULL_LOG -></div>
-                `;
-                article.onclick = () => window.open(item.link, '_blank');
-                feedContainer.appendChild(article);
-            });
+            const proxies = [
+                u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+                u => 'https://corsproxy.io/?' + encodeURIComponent(u)
+            ];
+            for (const makeUrl of proxies) {
+                try {
+                    const r = await fetch(makeUrl(DUNE_FEED_URL));
+                    if (!r.ok) continue;
+                    const items = parseFeedXml(await r.text());
+                    if (items.length) return items;
+                } catch (e) { console.warn('proxy failed:', e); }
+            }
+            throw new Error('all feed routes failed');
         }
+
+        let retries = 0;
 
         async function loadFeed() {
             const feedContainer = document.getElementById('rss-feed');
-            const statusMsg    = document.getElementById('status-msg');
-
-            statusMsg.innerText = ">> ESTABLISHING SECURE UPLINK TO FERMILAB...";
-            feedContainer.innerHTML = `
-                <div class="flex flex-col items-center justify-center py-20">
-                    <div class="loader mb-4"></div>
-                    <p>UPLINKING TO FERMILAB...</p>
-                </div>`;
+            const statusMsg = document.getElementById('status-msg');
 
             try {
-                const xml   = await fetchRawXML();
-                const items = parseRSS(xml);
-                renderItems(items.slice(0, 5));
+                const items = await fetchFeedItems();
+                feedContainer.innerHTML = '';
+
+                // Limit the number of articles to 5 for a shorter feed height
+                const itemsToShow = items.slice(0, 5);
+
+                statusMsg.classList.remove('animate-pulse');
+                statusMsg.innerText = `>> SUCCESS: ${itemsToShow.length} PACKETS RECEIVED FROM DUNE_SOURCE`;
+
+                itemsToShow.forEach(item => {
+                    const article = document.createElement('div');
+                    article.className = 'feed-item group';
+
+                    const pubDate = new Date(item.pubDate).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+
+                    const snippet = (item.description || '').replace(/<[^>]*>?/gm, '').trim().substring(0, 180) + "...";
+
+                    article.innerHTML = `
+                        <div class="meta">
+                            [ID: 0x${Math.floor(Math.random() * 16777215).toString(16)}] 
+                            [DATE: ${pubDate}] 
+                            [BY: ${escapeHtml(item.author || 'FERMILAB')}]
+                        </div>
+                        <h2 class="text-xl font-bold mb-2">
+                            <a href="${escapeHtml(item.link)}" target="_blank"> ${escapeHtml(item.title)}</a>
+                        </h2>
+                        <p class="text-sm leading-relaxed opacity-90">${escapeHtml(snippet)}</p>
+                        <div class="mt-4 text-xs font-bold underline">READ_FULL_LOG -></div>
+                    `;
+
+                    article.onclick = () => window.open(item.link, '_blank');
+                    feedContainer.appendChild(article);
+                });
             } catch (error) {
                 console.error('Feed error:', error);
-                statusMsg.classList.remove('animate-pulse');
-                statusMsg.innerText = ">> ERROR: UPLINK FAILED.";
+                const willRetry = retries < 3;
+                statusMsg.innerText = willRetry
+                    ? ">> ERROR: UPLINK FAILED. RETRYING IN 30s..."
+                    : ">> ERROR: UPLINK FAILED.";
                 feedContainer.innerHTML = `
                     <div class="border border-red-500 p-6 text-red-500 bg-red-900 bg-opacity-10">
                         <h3 class="font-bold">> CONNECTION_TIMEOUT</h3>
-                        <p class="mt-2 text-sm">The secure handshake with Fermilab news servers failed.<br>
-                        <span class="opacity-60">REASON: ${error.message}</span></p>
-                        <button onclick="loadFeed()" class="mt-4 border border-red-500 px-4 py-2 hover:bg-red-500 hover:text-black transition-colors">
+                        <p class="mt-2 text-sm">The secure handshake with Fermilab news servers failed.</p>
+                        <button onclick="location.reload()" class="mt-4 border border-red-500 px-4 py-2 hover:bg-red-500 hover:text-black transition-colors">
                             RE-ESTABLISH UPLINK
                         </button>
                     </div>
                 `;
+                if (willRetry) { retries++; setTimeout(loadFeed, 30000); }
             }
         }
 
