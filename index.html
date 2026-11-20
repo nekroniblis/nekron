@@ -483,15 +483,26 @@
                 </section>
             </div>
 
-            <!-- News & NASA -->
-            <section class="grid grid-cols- gap-6 mb-12">
-                <div class="lg:col-span-1 container-glow p-4">
-                    <h2 class="module-header">Visual Intel (NASA)</h2>
-                    <div id="nasa-feed-container" class="max-h-96 overflow-y-auto pr-4 text-base">
-                        <div class="loader mx-auto"></div>
-                    </div>
+           <section class="mb-12">
+    <div class="container-glow p-4">
+        <div class="flex flex-col md:flex-row gap-6">
+            <!-- NASA: fixed-width column, 1:1 images -->
+            <div class="w-full md:w-72 shrink-0">
+                <h2 class="module-header">Visual Intel (NASA)</h2>
+                <div id="nasa-feed-container" class="max-h-96 overflow-y-auto pr-4 text-base">
+                    <div class="loader mx-auto"></div>
                 </div>
-            </section>
+            </div>
+            <!-- Planetary Society: takes the rest of the space -->
+            <div class="flex-1 min-w-0 border-t md:border-t-0 md:border-l border-green-900/30 pt-4 md:pt-0 md:pl-6">
+                <h2 class="module-header">Planetary Society</h2>
+                <div id="planetary-feed-container" class="max-h-96 overflow-y-auto pr-4 text-base">
+                    <div class="loader mx-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
 			<!-- Visual Art / Comics -->
 			<section class="mb-12 h-[130px] md:h-[475px]">
